@@ -1,0 +1,31 @@
+{% extends 'windsurf/base.html' %}
+
+{% block title %}Equipment - WindsurfHub{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="max-w-2xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:max-w-7xl lg:px-8">
+        <h1 class="text-3xl font-extrabold tracking-tight text-gray-900">Carbon Emission Tracker </h1>
+        <p class="mt-4 text-gray-500">The greatest threat to our planet is the belief that someone else will save it..</p>
+
+        <div class="mt-8 grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:gap-x-8">
+            {% for item in equipment %}
+            <div class="group relative">
+                <div class="aspect-w-4 aspect-h-3 rounded-lg overflow-hidden bg-gray-100">
+                    <img src="{{ item.image.url }}" alt="{{ item.name }}" class="object-cover object-center">
+                </div>
+                <div class="mt-4 flex items-center justify-between space-x-8">
+                    <div>
+                        <h2 class="text-lg font-medium text-gray-900">
+                            <span>{{ item.name }}</span>
+                        </h2>
+                        <p class="mt-1 text-sm text-gray-500">{{ item.description|truncatewords:20 }}</p>
+                    </div>
+                    <p class="text-lg font-medium text-gray-900">${{ item.price }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

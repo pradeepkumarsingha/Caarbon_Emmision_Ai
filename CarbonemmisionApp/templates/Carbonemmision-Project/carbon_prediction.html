@@ -1,0 +1,188 @@
+{% extends 'windsurf/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <h1 class="text-3xl font-bold mb-8">Carbon Emission Prediction</h1>
+    
+    <!-- Prediction Form -->
+    <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+        <form id="predictionForm" class="space-y-4">
+            <div>
+                <label for="organization" class="block text-sm font-medium text-gray-700">Organization Name</label>
+                <input type="text" id="organization" name="organization" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <div>
+                <label for="date" class="block text-sm font-medium text-gray-700">Prediction Date</label>
+                <input type="date" id="date" name="date" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            </div>
+            <button type="submit" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                Get Prediction
+            </button>
+        </form>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" class="hidden space-y-8">
+        <!-- Prediction Result -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Prediction Results</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Predicted Emissions</p>
+                    <p id="predictionValue" class="text-2xl font-bold text-blue-600"></p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Model Accuracy (R² Score)</p>
+                    <p id="r2Score" class="text-2xl font-bold text-green-600"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Emissions Graph -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Emissions Trend</h2>
+            <canvas id="emissionsChart" class="w-full h-96"></canvas>
+        </div>
+
+        <!-- Component Breakdown -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-semibold mb-4">Latest Emission Components</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Energy Consumption</p>
+                    <p id="energyValue" class="text-xl font-bold text-purple-600"></p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Transportation</p>
+                    <p id="transportValue" class="text-xl font-bold text-orange-600"></p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded-lg">
+                    <p class="text-sm text-gray-600">Waste</p>
+                    <p id="wasteValue" class="text-xl font-bold text-red-600"></p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+let emissionsChart = null;
+
+document.getElementById('predictionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const organization = document.getElementById('organization').value;
+    const date = document.getElementById('date').value;
+    
+    try {
+        const response = await fetch('/predict/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                organization: organization,
+                date: date
+            })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+            // Show results section
+            document.getElementById('results').classList.remove('hidden');
+            
+            // Update prediction and R² score
+            document.getElementById('predictionValue').textContent = `${data.prediction} kg CO₂`;
+            document.getElementById('r2Score').textContent = `${(data.r2_score * 100).toFixed(2)}%`;
+            
+            // Update latest components
+            const latest = data.historical_data[data.historical_data.length - 1];
+            document.getElementById('energyValue').textContent = `${latest.energy} kg CO₂`;
+            document.getElementById('transportValue').textContent = `${latest.transport} kg CO₂`;
+            document.getElementById('wasteValue').textContent = `${latest.waste} kg CO₂`;
+            
+            // Prepare chart data
+            const historicalDates = data.historical_data.map(d => d.date);
+            const historicalEmissions = data.historical_data.map(d => d.total);
+            const trendDates = data.trend_line.map(d => d.date);
+            const trendEmissions = data.trend_line.map(d => d.prediction);
+            
+            // Update chart
+            if (emissionsChart) {
+                emissionsChart.destroy();
+            }
+            
+            const ctx = document.getElementById('emissionsChart').getContext('2d');
+            emissionsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [...historicalDates, ...trendDates],
+                    datasets: [
+                        {
+                            label: 'Historical Emissions',
+                            data: [...historicalEmissions, ...Array(trendDates.length).fill(null)],
+                            borderColor: 'rgb(59, 130, 246)',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            fill: true
+                        },
+                        {
+                            label: 'Trend Line & Predictions',
+                            data: [...Array(historicalDates.length).fill(null), ...trendEmissions],
+                            borderColor: 'rgb(34, 197, 94)',
+                            borderDash: [5, 5],
+                            fill: false
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        intersect: false,
+                        mode: 'index'
+                    },
+                    scales: {
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Date'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'Carbon Emissions (kg CO₂)'
+                            },
+                            beginAtZero: true
+                        }
+                    },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Carbon Emissions Over Time'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return `${context.dataset.label}: ${context.parsed.y.toFixed(2)} kg CO₂`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        } else {
+            alert(data.error || 'An error occurred');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        alert('An error occurred while fetching the prediction');
+    }
+});
+</script>
+{% endblock %}

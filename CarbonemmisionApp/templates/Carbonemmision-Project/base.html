@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}WindsurfHub{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+        }
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- 3D Animation Canvas -->
+    <canvas id="3d-canvas"></canvas>
+
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg bg-opacity-10 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-4">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <a href="{% url 'windsurf:home' %}" class="flex items-center">
+                        <span class="text-2xl font-bold text-blue-400">Carbon Emission Predictor</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="{% url 'windsurf:predict_emissions' %}" class="text-gray-300 hover:text-blue-400">Carbon Prediction</a>
+                    <a href="{% url 'windsurf:equipment_list' %}" class="text-gray-300 hover:text-blue-400">Equipment</a>
+                    <a href="{% url 'windsurf:event_list' %}" class="text-gray-300 hover:text-blue-400">Events</a>
+                    <a href="{% url 'windsurf:blog_list' %}" class="text-gray-300 hover:text-blue-400">Blog</a>
+                    <a href="{% url 'windsurf:contact' %}" class="text-gray-300 hover:text-blue-400">Contact</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        {% block content %}
+        {% endblock %}
+    </main>
+    <br><br><br><br><br><br><br><br>
+    <!-- Footer -->
+    <footer class="bg-gray-800 bg-opacity-20 backdrop-blur-md mt-8">
+        <div class="border-t border-gray-700 pt-6 text-center">
+            <p class="text-gray-400">&copy; {% now "Y" %} Carbon Emission Predictor. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Three.js 3D Animation -->
+    <script>
+        // Set up Three.js scene
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('3d-canvas'), alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        // Add a 3D object (e.g., a rotating cube)
+        const geometry = new THREE.BoxGeometry();
+        const material = new THREE.MeshBasicMaterial({ color: 0x00ff00, wireframe: true });
+        const cube = new THREE.Mesh(geometry, material);
+        scene.add(cube);
+
+        camera.position.z = 5;
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            cube.rotation.x += 0.01;
+            cube.rotation.y += 0.01;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            renderer.setSize(width, height);
+            camera.aspect = width / height;
+            camera.updateProjectionMatrix();
+        });
+    </script>
+</body>
+</html>
